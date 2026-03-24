@@ -1,4 +1,5 @@
 "use client"
+import { SignUpButton } from '@clerk/clerk-react';
 
 // Local utility for Tailwind class merging since we are porting this component directly
 function cn(...classes: (string | undefined | null | false)[]) {
@@ -126,18 +127,29 @@ function TableHeader() {
       <div className="text-right">ROE</div>
       <div className="text-right">Yield</div>
       <div className="text-right">PER</div>
-      <div className="text-center">Decisión</div>
+      <div className="text-center">IA Insight</div>
     </div>
   )
 }
 
-function TableRow({ stock }: { stock: StockData }) {
+function TableRow({ 
+  stock, 
+  isFree, 
+  isBlurred, 
+  onUpgradeClick 
+}: { 
+  stock: StockData; 
+  isFree?: boolean; 
+  isBlurred?: boolean; 
+  onUpgradeClick?: () => void 
+}) {
   const allMet = meetsAllCriteria(stock)
   
   return (
     <div className={cn(
       "group grid grid-cols-[minmax(160px,1.5fr)_repeat(4,minmax(80px,1fr))_100px] gap-4 px-4 py-4 items-center border-b border-border/50 transition-all duration-150 hover:bg-muted/50 cursor-default relative last:border-0",
-      allMet && "bg-gradient-to-r from-success/10 via-success/5 to-transparent"
+      allMet && !isBlurred && "bg-gradient-to-r from-success/10 via-success/5 to-transparent",
+      isBlurred && "blur-[4px] opacity-60 select-none pointer-events-none"
     )}>
       {allMet && (
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-success rounded-r" />
@@ -159,20 +171,61 @@ function TableRow({ stock }: { stock: StockData }) {
         <MetricValue value={stock.per} unit="x" meetsTarget={meetsPerCriteria(stock.per)} />
       </div>
       <div className="text-center flex justify-center">
-        <DecisionBadge decision={stock.decision} highlight={allMet} />
+        {isFree ? (
+          <button 
+            onClick={onUpgradeClick}
+            className="inline-flex items-center justify-center gap-1.5 min-w-[70px] px-2.5 py-0.5 text-xs font-medium rounded-full bg-muted border border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all group-hover:border-primary/50"
+            title="Desbloquear Insight PRO"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            PRO
+          </button>
+        ) : (
+          <DecisionBadge decision={stock.decision} highlight={allMet} />
+        )}
       </div>
     </div>
   )
 }
 
-export function StockTable() {
+export interface StockTableProps {
+  isAnon?: boolean;
+  isFree?: boolean;
+  isPro?: boolean;
+  onUpgradeClick?: () => void;
+}
+
+export function StockTable({ isAnon, isFree, onUpgradeClick }: StockTableProps) {
+  // Memoize para rendimiento optimizado de los datos pesados (simulado por ahora).
+  // La virtualización real (ej: @tanstack/react-virtual) se recomendaría si son miles de filas.
+  
   return (
-    <div className="w-full rounded-lg border border-border bg-card overflow-hidden">
+    <div className="relative w-full rounded-lg border border-border bg-card overflow-hidden">
       <TableHeader />
-      <div>
-        {stockData.map((stock) => (
-          <TableRow key={stock.ticker} stock={stock} />
-        ))}
+      <div className="relative">
+        {stockData.map((stock, i) => {
+          const isBlurred = isAnon && i >= 10;
+          return (
+            <TableRow 
+              key={stock.ticker} 
+              stock={stock} 
+              isFree={isFree} 
+              isBlurred={isBlurred}
+              onUpgradeClick={onUpgradeClick}
+            />
+          );
+        })}
+        
+        {isAnon && stockData.length > 10 && (
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-card via-card/90 to-transparent flex items-end justify-center pb-8 z-10 pointer-events-none">
+            <SignUpButton mode="modal">
+              <button className="pointer-events-auto bg-success text-success-foreground px-6 py-3 rounded-xl font-bold shadow-lg shadow-success/20 hover:bg-success/90 transition-all hover:-translate-y-1 inline-flex items-center gap-2">
+                Regístrate para desbloquear las {stockData.length - 10} acciones restantes
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </button>
+            </SignUpButton>
+          </div>
+        )}
       </div>
     </div>
   )
