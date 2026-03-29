@@ -13,6 +13,7 @@ import {
 import { UserButton, useUser, useAuth, useClerk } from '@clerk/clerk-react';
 import UpgradeModal from './components/UpgradeModal';
 import { useState } from 'react';
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 const Sidebar = () => {
   const location = useLocation();
@@ -209,6 +210,7 @@ function App() {
           </ProtectedRoute>
         } />
       </Routes>
+      <SpeedInsights />
     </div>
   );
 }
